@@ -7,11 +7,19 @@ Civic voting app with on-chain contracts (Hardhat) and a Next.js frontend/API.
 ```text
 /contracts     Hardhat 3 project (Solidity, tests, Ignition)
 /app           Next.js App Router pages
+/app/admin     Admin dashboard (wallet auth via RainbowKit / wagmi)
 /app/api       Next.js Route Handlers
 /components    Shared React components
-/lib           Shared utilities (ABI, viem client, db client)
-/db            Database schema and SQL migrations
+/lib           Shared utilities (ABI, viem, wagmi, db, exa, validation)
+/db            Drizzle schema and migrations
 ```
+
+## Stack notes
+
+- **Admin only:** `wagmi` (v2), `viem`, `@rainbow-me/rainbowkit`, and `@tanstack/react-query` are mounted under `/admin` only — not the root layout. Citizens will use an email-based, walletless flow (Phase 0.5) and should not import these modules.
+- **Database:** `drizzle-orm` + `drizzle-kit` with the `pg` driver.
+- **API validation:** `zod` (see `lib/validation.ts`).
+- **Party research:** `exa-js` (see `lib/exa.ts` and `POST /api/research`).
 
 ## Getting started
 
@@ -24,7 +32,17 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Health check: [http://localhost:3000/api/health](http://localhost:3000/api/health).
+- Health: `/api/health`
+- Admin (wallet): `/admin`
+
+### Database
+
+```bash
+bun run db:generate
+bun run db:migrate
+# or, for local prototyping:
+bun run db:push
+```
 
 ### Contracts
 
@@ -44,13 +62,14 @@ bun run contracts:test
 
 ## Environment
 
-Copy and adjust as needed:
+Copy `.env.example` and fill in values:
 
 ```bash
-# App / chain
-NEXT_PUBLIC_RPC_URL=http://127.0.0.1:8545
-NEXT_PUBLIC_CHAIN_ID=31337
-
-# Database
-DATABASE_URL=postgres://user:password@localhost:5432/civic_vote
+cp .env.example .env.local
 ```
+
+Required for admin wallet connect: `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` (from [WalletConnect Cloud](https://cloud.walletconnect.com/)).
+
+Required for party research: `EXA_API_KEY`.
+
+Required for DB access: `DATABASE_URL`.

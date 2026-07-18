@@ -1,42 +1,50 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 
-/**
- * Lightweight DB client placeholder.
- * Wire this up to your preferred driver (e.g. postgres.js, better-sqlite3)
- * using DATABASE_URL once a database is provisioned.
- */
-export type DbClient = {
-  query: <T = unknown>(sql: string, params?: unknown[]) => Promise<T[]>;
+import * as schema from "@/db/schema";
+
+type Db = ReturnType<typeof drizzle<typeof schema>>;
+
+const globalForDb = globalThis as unknown as {
+  pool?: Pool;
+  db?: Db;
 };
 
-let client: DbClient | null = null;
-
-export function getDb(): DbClient {
-  if (client) {
-    return client;
+function getPool(): Pool {
+  if (globalForDb.pool) {
+    return globalForDb.pool;
   }
 
   const databaseUrl = process.env.DATABASE_URL;
 
   if (!databaseUrl) {
     throw new Error(
-      "DATABASE_URL is not set. Configure a database before using getDb().",
+      "DATABASE_URL is not set. Configure a Postgres database before using getDb().",
     );
   }
 
-  client = {
-    async query() {
-      throw new Error(
-        "DB driver not configured yet. Connect a SQL client in lib/db.ts.",
-      );
-    },
-  };
+  const pool = new Pool({ connectionString: databaseUrl });
 
-  return client;
+  if (process.env.NODE_ENV !== "production") {
+    globalForDb.pool = pool;
+  }
+
+  return pool;
 }
 
-/** Helper for reading migration SQL from /db/migrations during tooling. */
-export function readMigration(filename: string): string {
-  return readFileSync(join(process.cwd(), "db", "migrations", filename), "utf8");
+/** Shared Drizzle client (Postgres via `pg`). */
+export function getDb(): Db {
+  if (globalForDb.db) {
+    return globalForDb.db;
+  }
+
+  const db = drizzle(getPool(), { schema });
+
+  if (process.env.NODE_ENV !== "production") {
+    globalForDb.db = db;
+  }
+
+  return db;
 }
+
+export type { Db };
