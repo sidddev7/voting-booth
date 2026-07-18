@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Hardhat project (compiled artifacts + generated types):
+    "contracts/**",
   ]),
 ]);
 
