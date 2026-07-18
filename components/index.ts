@@ -1,3 +1,4 @@
 export { Container } from "./container";
-export { AdminProviders } from "./admin/providers";
-export { AdminConnectButton } from "./admin/connect-button";
+
+// Intentionally do not re-export admin wallet UI from this barrel.
+// Import `@/components/admin/*` only from /app/admin routes.
