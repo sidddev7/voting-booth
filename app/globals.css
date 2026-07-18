@@ -1,26 +1,187 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #eef2f6;
+  --foreground: #0b1f33;
+  --ink: #0b1f33;
+  --ink-muted: #3d5166;
+  --paper: #f7f9fc;
+  --seal: #0f6e56;
+  --seal-deep: #0a4f3d;
+  --seal-soft: #d8efe7;
+  --line: #c5d0dc;
+  --line-strong: #8fa0b3;
+  --warn: #9a3412;
+  --surface: rgba(247, 249, 252, 0.78);
+  --shadow-sm: 0 1px 2px rgba(11, 31, 51, 0.05);
+  --shadow-md: 0 8px 24px rgba(11, 31, 51, 0.08);
+  --shadow-lg: 0 18px 40px rgba(11, 31, 51, 0.12);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-paper: var(--paper);
+  --color-seal: var(--seal);
+  --color-seal-deep: var(--seal-deep);
+  --color-seal-soft: var(--seal-soft);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-warn: var(--warn);
+  --font-sans: var(--font-source-sans);
+  --font-display: var(--font-fraunces);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-source-sans), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-fraunces), ui-serif, Georgia, serif;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--seal) 28%, white);
+    color: var(--ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--seal);
+    outline-offset: 3px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .booth-atmosphere {
+    background:
+      radial-gradient(ellipse 90% 60% at 12% -10%, #cfe0ef 0%, transparent 55%),
+      radial-gradient(ellipse 70% 50% at 92% 8%, #c5e6d8 0%, transparent 50%),
+      radial-gradient(ellipse 60% 40% at 50% 100%, #d7e0ea 0%, transparent 55%),
+      linear-gradient(165deg, #e8eef4 0%, #eef2f6 42%, #e6edf3 100%);
+  }
+
+  .booth-grid {
+    background-image:
+      linear-gradient(rgba(11, 31, 51, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(11, 31, 51, 0.035) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, black, transparent);
+  }
+
+  .glass-panel {
+    background: var(--surface);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .pressable {
+    transition-property: transform, background-color, border-color, color,
+      box-shadow, opacity;
+    transition-duration: 180ms;
+    transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  .pressable:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+
+  .reveal {
+    animation: reveal-up 0.55s cubic-bezier(0.2, 0, 0, 1) both;
+  }
+
+  .reveal-delay-1 {
+    animation-delay: 80ms;
+  }
+
+  .reveal-delay-2 {
+    animation-delay: 160ms;
+  }
+
+  .reveal-delay-3 {
+    animation-delay: 240ms;
+  }
+
+  .reveal-delay-4 {
+    animation-delay: 320ms;
+  }
+}
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--seal) 35%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.animate-bar {
+  transform-origin: left center;
+  animation: bar-grow 0.7s cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1.6s cubic-bezier(0.2, 0, 0, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-delay-1,
+  .reveal-delay-2,
+  .reveal-delay-3,
+  .reveal-delay-4,
+  .animate-bar,
+  .animate-pulse-ring {
+    animation: none !important;
+  }
+
+  .pressable:active:not(:disabled) {
+    transform: none;
+  }
 }
