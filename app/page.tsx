@@ -1,65 +1,57 @@
-import Image from "next/image";
+import Link from "next/link";
 
-export default function Home() {
+import { BoothShell } from "@/components/booth-shell";
+import { CitizenAuthLink } from "@/components/citizen-auth-button";
+import { Container } from "@/components/container";
+import { ElectionStatusBadge } from "@/components/election-status-badge";
+import { DEMO_ELECTION } from "@/lib/demo-election";
+
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <BoothShell action={<CitizenAuthLink />}>
+      <section className="relative flex flex-1 flex-col justify-center py-16 sm:py-20 lg:py-24">
+        <Container className="relative">
+          <div className="max-w-2xl">
+            <p className="reveal font-display text-5xl leading-[1.05] font-medium tracking-tight text-ink sm:text-6xl lg:text-7xl">
+              Civic Vote
+            </p>
+
+            <h1 className="reveal reveal-delay-1 mt-6 max-w-xl text-2xl font-medium tracking-tight text-ink sm:text-3xl">
+              Cast your ballot. Counted once. Verifiable always.
+            </h1>
+
+            <p className="reveal reveal-delay-2 mt-4 max-w-md text-base leading-relaxed text-ink-muted sm:text-lg">
+              Sign in with email, review the parties, and submit a
+              single private ballot — no wallet app required.
+            </p>
+
+            <div className="reveal reveal-delay-3 mt-8 flex flex-wrap items-center gap-3">
+              <Link
+                href="/login"
+                className="pressable inline-flex min-h-12 cursor-pointer items-center rounded-2xl bg-seal px-6 text-base font-semibold text-white shadow-[var(--shadow-md)] hover:bg-seal-deep"
+              >
+                Enter voting booth
+              </Link>
+              <Link
+                href="/results"
+                className="pressable inline-flex min-h-12 cursor-pointer items-center rounded-2xl border border-line bg-white/70 px-6 text-base font-semibold text-ink hover:bg-white"
+              >
+                View results
+              </Link>
+            </div>
+
+            <div className="reveal reveal-delay-4 mt-10 flex flex-wrap items-center gap-3">
+              <ElectionStatusBadge state={DEMO_ELECTION.state} />
+              <span className="text-sm text-ink-muted">
+                {DEMO_ELECTION.title}
+                {DEMO_ELECTION.closesAtLabel
+                  ? ` · ${DEMO_ELECTION.closesAtLabel}`
+                  : null}
+              </span>
+            </div>
+          </div>
+        </Container>
+      </section>
+    </BoothShell>
   );
 }

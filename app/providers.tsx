@@ -10,8 +10,12 @@ type ProvidersProps = {
 };
 
 /**
- * Root Privy provider for citizen auth (email / passkey / Google) with
- * automatic embedded wallet creation on first login (Sepolia).
+ * Root Privy provider for citizen auth with automatic embedded wallet
+ * creation on first login (Sepolia).
+ *
+ * `loginMethods` must match methods enabled in the Privy Dashboard
+ * (Login methods). Passkey / Google throw "not allowed" if listed here
+ * but disabled in the dashboard — add them back only after enabling.
  *
  * `SmartWalletsProvider` is nested so citizen pages can use
  * `useCitizenSmartWallet` / `useSmartWallets` for sponsored txs.
@@ -32,7 +36,7 @@ export function Providers({ children }: ProvidersProps) {
     <PrivyProvider
       appId={appId}
       config={{
-        loginMethods: ["email", "passkey", "google"],
+        loginMethods: ["email"],
         // ethereum.createOnLogin is the current SDK shape for auto-wallet creation
         embeddedWallets: {
           ethereum: {
