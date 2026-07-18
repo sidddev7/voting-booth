@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# civic-vote
 
-## Getting Started
+Civic voting app with on-chain contracts (Hardhat) and a Next.js frontend/API.
 
-First, run the development server:
+## Folder structure
+
+```text
+/contracts     Hardhat 3 project (Solidity, tests, Ignition)
+/app           Next.js App Router pages
+/app/admin     Admin dashboard (wallet auth via RainbowKit / wagmi)
+/app/api       Next.js Route Handlers
+/components    Shared React components
+/lib           Shared utilities (ABI, viem, wagmi, db, exa, validation)
+/db            Drizzle schema and migrations
+```
+
+## Stack notes
+
+- **Admin only:** `wagmi` (v2) + RainbowKit live in `app/providers.tsx` and are mounted from `app/admin/layout.tsx` only (Sepolia). The root layout does not import them, so citizen pages keep a wallet-free client bundle. Citizens will use an email-based, walletless flow (Phase 0.5).
+- **Database:** `drizzle-orm` + `drizzle-kit` with the `pg` driver.
+- **API validation:** `zod` (see `lib/validation.ts`).
+- **Party research:** `exa-js` (see `lib/exa.ts` and `POST /api/research`).
+
+## Getting started
+
+### App
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+bun install
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Health: `/api/health`
+- Admin (wallet): `/admin`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Database
 
-## Learn More
+```bash
+bun run db:generate
+bun run db:migrate
+# or, for local prototyping:
+bun run db:push
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Contracts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+cd contracts
+npm install
+npm run compile
+npm test
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+From the repo root:
 
-## Deploy on Vercel
+```bash
+bun run contracts:compile
+bun run contracts:test
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Environment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Copy `.env.example` and fill in values:
+
+```bash
+cp .env.example .env.local
+```
+
+Admin wallet (Sepolia): `NEXT_PUBLIC_RPC_URL`, `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` (from [WalletConnect Cloud](https://cloud.walletconnect.com/)).
+
+Party research: `EXA_API_KEY`.
+
+Database: `DATABASE_URL`.
