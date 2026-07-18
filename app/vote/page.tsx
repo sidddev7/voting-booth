@@ -62,15 +62,15 @@ export default function VotePage() {
   const { ready: privyReady, authenticated, getAccessToken } = usePrivy();
   const {
     ready: walletReady,
-    authenticated: walletAuth,
-    smartWalletAddress,
+    votingAddress,
+    hasSmartWallet,
   } = useCitizenSmartWallet();
 
   const [flow, setFlow] = useState<FlowStep>("ballot");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const voted = useHasVotedLocally(smartWalletAddress);
+  const voted = useHasVotedLocally(votingAddress);
 
   const election = DEMO_ELECTION;
   const selectedParty = election.parties.find((p) => p.id === selectedId);
@@ -81,20 +81,23 @@ export default function VotePage() {
     }
   }, [privyReady, authenticated, router]);
 
-  const provisioning =
-    authenticated &&
-    walletAuth &&
-    walletReady &&
-    !smartWalletAddress &&
-    election.state === "Active" &&
-    !voted;
+  const bootstrapping = !privyReady || (authenticated && !walletReady);
 
   const showBallot =
     authenticated &&
+    walletReady &&
     election.state === "Active" &&
-    Boolean(smartWalletAddress) &&
+    Boolean(votingAddress) &&
     !voted &&
     (flow === "ballot" || flow === "confirm" || flow === "submitting");
+
+  const missingWallet =
+    authenticated &&
+    walletReady &&
+    election.state === "Active" &&
+    !votingAddress &&
+    !voted &&
+    flow !== "success";
 
   function beginConfirm(partyId: number) {
     setSelectedId(partyId);
@@ -103,7 +106,7 @@ export default function VotePage() {
   }
 
   function castBallot() {
-    if (selectedId === null || !smartWalletAddress) return;
+    if (selectedId === null || !votingAddress) return;
 
     startTransition(async () => {
       setFlow("submitting");
@@ -116,7 +119,7 @@ export default function VotePage() {
         await getAccessToken();
         await new Promise((resolve) => setTimeout(resolve, 1400));
 
-        markVotedLocally(smartWalletAddress, selectedId);
+        markVotedLocally(votingAddress, selectedId);
         setFlow("success");
       } catch {
         setErrorMessage(
@@ -149,7 +152,7 @@ export default function VotePage() {
             </p>
           </div>
 
-          {!privyReady || (authenticated && !walletReady) || provisioning ? (
+          {bootstrapping ? (
             <LoadingPanel message="Setting up your secure voting account…" />
           ) : null}
 
@@ -164,6 +167,31 @@ export default function VotePage() {
               actionHref="/results"
               actionLabel="View results"
             />
+          ) : null}
+
+          {missingWallet ? (
+            <div className="reveal glass-panel rounded-[1.75rem] border border-warn/25 p-7 sm:p-9">
+              <h2 className="font-display text-2xl font-medium text-ink">
+                Voting account unavailable
+              </h2>
+              <p className="mt-2 text-ink-muted">
+                You’re signed in, but Privy didn’t create a wallet for this
+                session. In the Privy Dashboard, confirm{" "}
+                <strong className="font-semibold text-ink">
+                  Embedded wallets
+                </strong>{" "}
+                are on, and for gas-sponsored votes also enable{" "}
+                <strong className="font-semibold text-ink">Smart Wallets</strong>{" "}
+                (Sepolia, Kernel/ZeroDev, paymaster URL).
+              </p>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="pressable mt-6 inline-flex min-h-11 cursor-pointer items-center rounded-xl bg-ink px-5 text-sm font-semibold text-paper hover:bg-ink/90"
+              >
+                Try again
+              </button>
+            </div>
           ) : null}
 
           {authenticated &&
@@ -228,6 +256,17 @@ export default function VotePage() {
 
           {showBallot ? (
             <div className="space-y-6">
+              {!hasSmartWallet ? (
+                <p
+                  role="status"
+                  className="rounded-xl border border-line/70 bg-paper/80 px-4 py-3 text-sm text-ink-muted"
+                >
+                  Demo mode: using your embedded wallet. For sponsored on-chain
+                  votes, enable Smart Wallets in the Privy Dashboard (Sepolia +
+                  paymaster).
+                </p>
+              ) : null}
+
               <PartyVotingList
                 parties={election.parties}
                 selectedId={selectedId}
