@@ -6,6 +6,7 @@ export { ElectionStatusBadge } from "./election-status-badge";
 export { PartyVotingList } from "./party-voting-list";
 export { PartyInfoPanel } from "./party-info-panel";
 export { ResultsBars } from "./results-bars";
+export { TamperVotesButton } from "./tamper-votes-button";
 
 // Intentionally do not re-export admin wallet UI from this barrel.
 // Import `@/components/admin/*` only from /app/admin routes.
