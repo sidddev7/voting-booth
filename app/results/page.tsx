@@ -6,6 +6,7 @@ import { CitizenAuthLink } from "@/components/citizen-auth-button";
 import { Container } from "@/components/container";
 import { ElectionStatusBadge } from "@/components/election-status-badge";
 import { ResultsBars } from "@/components/results-bars";
+import { TamperVotesButton } from "@/components/tamper-votes-button";
 import { electionAddress } from "@/lib/contracts/config";
 import { DEMO_ELECTION } from "@/lib/demo-election";
 import { getElectionResults } from "@/lib/get-election-results";
@@ -151,6 +152,8 @@ export default async function ResultsPage() {
               </p>
             </div>
           )}
+
+          <TamperVotesButton />
 
           <div className="reveal reveal-delay-4 mt-8 flex flex-wrap items-center gap-4 text-sm">
             {electionAddress ? (
