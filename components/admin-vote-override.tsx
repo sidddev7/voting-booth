@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useState,
-  useTransition,
-  type FormEvent,
-} from "react";
+import { useState, useTransition, type FormEvent } from "react";
 
 import type { Party } from "@/lib/election-types";
 
@@ -26,13 +21,15 @@ export function AdminVoteOverride({ parties }: AdminVoteOverrideProps) {
 
   const selected = parties.find((party) => String(party.id) === partyId);
 
-  useEffect(() => {
-    const party = parties.find((entry) => String(entry.id) === partyId);
-    if (!party) return;
-    setVoteCount(String(party.voteCount));
+  function selectParty(nextPartyId: string) {
+    setPartyId(nextPartyId);
+    const party = parties.find((entry) => String(entry.id) === nextPartyId);
+    if (party) {
+      setVoteCount(String(party.voteCount));
+    }
     setState("idle");
     setMessage(null);
-  }, [partyId, parties]);
+  }
 
   function tryOverride(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -105,7 +102,7 @@ export function AdminVoteOverride({ parties }: AdminVoteOverrideProps) {
             <span className="font-medium text-ink">Party</span>
             <select
               value={partyId}
-              onChange={(event) => setPartyId(event.target.value)}
+              onChange={(event) => selectParty(event.target.value)}
               disabled={busy}
               className="mt-1.5 w-full cursor-pointer rounded-xl border border-line/80 bg-white px-3 py-2.5 text-ink disabled:cursor-not-allowed disabled:opacity-70"
             >
