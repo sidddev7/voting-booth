@@ -1,6 +1,10 @@
 "use client";
 
-import { usePrivy, useSendTransaction } from "@privy-io/react-auth";
+import {
+  useCreateWallet,
+  usePrivy,
+  useSendTransaction,
+} from "@privy-io/react-auth";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -66,11 +70,14 @@ export default function VotePage() {
   const router = useRouter();
   const { ready: privyReady, authenticated, getAccessToken } = usePrivy();
   const { sendTransaction } = useSendTransaction();
+  const { createWallet } = useCreateWallet();
   const {
     ready: walletReady,
     votingAddress,
     hasSmartWallet,
+    canUseSmartWallet,
     smartWalletClient,
+    embeddedWalletAddress,
   } = useCitizenSmartWallet();
 
   const [election, setElection] = useState<ElectionSnapshot | null>(null);
@@ -169,17 +176,8 @@ export default function VotePage() {
     walletReady &&
     !electionLoading &&
     electionActive &&
-    Boolean(votingAddress) &&
     !voted &&
     (flow === "ballot" || flow === "confirm" || flow === "submitting");
-
-  const missingWallet =
-    authenticated &&
-    walletReady &&
-    electionActive &&
-    !votingAddress &&
-    !voted &&
-    flow !== "success";
 
   function beginConfirm(partyId: number) {
     setSelectedId(partyId);
@@ -188,10 +186,9 @@ export default function VotePage() {
   }
 
   function castBallot() {
-    if (selectedId === null || !votingAddress) return;
+    if (selectedId === null) return;
 
     const partyId = selectedId;
-    const voter = votingAddress;
 
     startTransition(async () => {
       setFlow("submitting");
@@ -202,6 +199,26 @@ export default function VotePage() {
         const accessToken = await getAccessToken();
         if (!accessToken) {
           throw new Error("Session expired. Please sign in again.");
+        }
+
+        // Smart-wallet client → UserOp from smart account.
+        // Otherwise → embedded EOA via sendTransaction (create wallet if needed).
+        let voter: string | null = null;
+
+        if (canUseSmartWallet && smartWalletClient) {
+          voter = votingAddress;
+        } else {
+          voter = embeddedWalletAddress;
+          if (!voter) {
+            const created = await createWallet();
+            voter = created.address;
+          }
+        }
+
+        if (!voter) {
+          throw new Error(
+            "Must have a Privy wallet before signing. Sign out and back in, or enable Embedded wallets in the Privy Dashboard.",
+          );
         }
 
         const ticketRes = await fetch("/api/eligibility-ticket", {
@@ -231,7 +248,7 @@ export default function VotePage() {
 
         let hash: Hex;
 
-        if (smartWalletClient) {
+        if (canUseSmartWallet && smartWalletClient) {
           hash = await smartWalletClient.sendTransaction({
             to,
             data,
@@ -317,31 +334,6 @@ export default function VotePage() {
             />
           ) : null}
 
-          {missingWallet ? (
-            <div className="reveal glass-panel rounded-[1.75rem] border border-warn/25 p-7 sm:p-9">
-              <h2 className="font-display text-2xl font-medium text-ink">
-                Voting account unavailable
-              </h2>
-              <p className="mt-2 text-ink-muted">
-                You’re signed in, but Privy didn’t create a wallet for this
-                session. In the Privy Dashboard, confirm{" "}
-                <strong className="font-semibold text-ink">
-                  Embedded wallets
-                </strong>{" "}
-                are on, and for gas-sponsored votes also enable{" "}
-                <strong className="font-semibold text-ink">Smart Wallets</strong>{" "}
-                (Sepolia, Kernel/ZeroDev, paymaster URL).
-              </p>
-              <button
-                type="button"
-                onClick={() => window.location.reload()}
-                className="pressable mt-6 inline-flex min-h-11 cursor-pointer items-center rounded-xl bg-ink px-5 text-sm font-semibold text-paper hover:bg-ink/90"
-              >
-                Try again
-              </button>
-            </div>
-          ) : null}
-
           {authenticated &&
           electionActive &&
           voted &&
@@ -416,14 +408,14 @@ export default function VotePage() {
 
           {showBallot && election ? (
             <div className="space-y-6">
-              {!hasSmartWallet ? (
+              {!canUseSmartWallet ? (
                 <p
                   role="status"
                   className="rounded-xl border border-line/70 bg-paper/80 px-4 py-3 text-sm text-ink-muted"
                 >
-                  Using your embedded wallet. It needs a little Sepolia ETH for
-                  gas, or enable Smart Wallets in the Privy Dashboard for
-                  sponsored votes.
+                  {hasSmartWallet
+                    ? "Your smart wallet isn’t ready to submit yet — casting with your embedded wallet. It needs a little Sepolia ETH for gas, or finish Smart Wallet / paymaster setup in Privy for sponsored votes."
+                    : "Using your embedded wallet. It needs a little Sepolia ETH for gas, or enable Smart Wallets in the Privy Dashboard for sponsored votes."}
                 </p>
               ) : null}
 
@@ -489,6 +481,9 @@ function formatCastError(error: unknown): string {
 
   if (message.includes("PRIVY_APP_SECRET")) {
     return "Server is missing PRIVY_APP_SECRET. Add it from the Privy Dashboard.";
+  }
+  if (message.includes("Must have a Privy wallet before signing")) {
+    return "Your Privy wallet isn’t ready yet. Tap Return to ballot, wait a moment, then try again — or sign out and back in so an embedded wallet can be created.";
   }
   if (message.includes("User rejected") || message.includes("rejected")) {
     return "Transaction was cancelled.";

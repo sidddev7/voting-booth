@@ -80,6 +80,7 @@ const electionAbi = [
   },
 ] as const;
 
+/** Keep names/order aligned with lib/parties.ts DEMO_PARTIES (index == party id). */
 const PARTIES = [
   { name: "Harbor Alliance", shortCode: "HA" },
   { name: "Civic Forward", shortCode: "CF" },

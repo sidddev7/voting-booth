@@ -72,6 +72,11 @@ cp .env.example .env.local
 
 Admin wallet (Sepolia): `NEXT_PUBLIC_RPC_URL`, `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` (from [WalletConnect Cloud](https://cloud.walletconnect.com/)).
 
-Party research: `EXA_API_KEY`.
+Party research (Exa + cached summaries): `EXA_API_KEY`, `DATABASE_URL`.
 
-Database: `DATABASE_URL`.
+```bash
+bun run db:migrate
+bun run db:seed   # initial Learn-about summaries for all demo parties
+```
+
+Database: `DATABASE_URL` (Supabase Postgres).
