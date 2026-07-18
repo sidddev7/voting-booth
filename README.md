@@ -16,7 +16,8 @@ Civic voting app with on-chain contracts (Hardhat) and a Next.js frontend/API.
 
 ## Stack notes
 
-- **Admin only:** `wagmi` (v2) + RainbowKit live in `app/providers.tsx` and are mounted from `app/admin/layout.tsx` only (Sepolia). The root layout does not import them, so citizen pages keep a wallet-free client bundle. Citizens will use an email-based, walletless flow (Phase 0.5).
+- **Citizen auth:** Privy (`@privy-io/react-auth`) lives in `app/providers.tsx` and is mounted from the root layout (email / passkey / Google + embedded wallet on Sepolia).
+- **Admin only:** `wagmi` (v2) + RainbowKit live in `app/admin/providers.tsx` and are mounted from `app/admin/layout.tsx` only (Sepolia).
 - **Database:** `drizzle-orm` + `drizzle-kit` with the `pg` driver.
 - **API validation:** `zod` (see `lib/validation.ts`).
 - **Party research:** `exa-js` (see `lib/exa.ts` and `POST /api/research`).
