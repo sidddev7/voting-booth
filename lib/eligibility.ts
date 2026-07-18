@@ -23,7 +23,7 @@ export const ELIGIBILITY_TICKET_PRIMARY_TYPE = "EligibilityTicket" as const;
 export const ELIGIBILITY_TICKET_TYPES = {
   EligibilityTicket: [
     { name: "voter", type: "address" },
-    { name: "contract", type: "address" },
+    { name: "votingContract", type: "address" },
   ],
 } as const;
 
@@ -88,7 +88,7 @@ export async function signEligibilityTicket(
     primaryType: ELIGIBILITY_TICKET_PRIMARY_TYPE,
     message: {
       voter,
-      contract,
+      votingContract: contract,
     },
   });
 }
