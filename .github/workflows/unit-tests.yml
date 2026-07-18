@@ -28,4 +28,5 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Run unit tests
-        run: bun test
+        # Use `bun run test` (package.json → vitest). Plain `bun test` is Bun's runner.
+        run: bun run test

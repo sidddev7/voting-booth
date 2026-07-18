@@ -42,7 +42,7 @@ Open [http://localhost:3000](http://localhost:3000).
 Vitest covers shared lib helpers, seed builders, API health, and key UI components:
 
 ```bash
-bun test            # single run
+bun run test        # single run (Vitest)
 bun run test:watch  # watch mode
 ```
 
