@@ -1,0 +1,16 @@
+import { describe, expect, it } from "vitest";
+
+import { GET } from "@/app/api/health/route";
+
+describe("GET /api/health", () => {
+  it("returns an ok service payload", async () => {
+    const response = await GET();
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    expect(body).toEqual({
+      status: "ok",
+      service: "civic-vote",
+    });
+  });
+});

@@ -37,6 +37,17 @@ Open [http://localhost:3000](http://localhost:3000).
 - Health: `/api/health`
 - Admin (wallet): `/admin`
 
+### Unit tests
+
+Vitest covers shared lib helpers, seed builders, API health, and key UI components:
+
+```bash
+bun run test        # single run (Vitest)
+bun run test:watch  # watch mode
+```
+
+PRs targeting `main` run the same suite via GitHub Actions (`.github/workflows/unit-tests.yml`).
+
 ### Database
 
 ```bash
