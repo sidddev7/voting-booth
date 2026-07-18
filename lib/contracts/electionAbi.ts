@@ -41,6 +41,11 @@ export const electionAbi = [
   },
   {
     "inputs": [],
+    "name": "EmptyPartyField",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "InvalidEligibilityTicket",
     "type": "error"
   },
@@ -61,12 +66,22 @@ export const electionAbi = [
   },
   {
     "inputs": [],
+    "name": "NoParties",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "NotAdmin",
     "type": "error"
   },
   {
     "inputs": [],
     "name": "SignerAlreadySet",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "SignerNotSet",
     "type": "error"
   },
   {
@@ -139,6 +154,12 @@ export const electionAbi = [
       }
     ],
     "name": "PartyAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [],
+    "name": "RegistrationOpened",
     "type": "event"
   },
   {
@@ -346,6 +367,13 @@ export const electionAbi = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "openRegistration",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -369,6 +397,19 @@ export const electionAbi = [
         "internalType": "string",
         "name": "shortCode",
         "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "partyCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",

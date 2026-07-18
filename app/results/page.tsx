@@ -7,6 +7,7 @@ import { Container } from "@/components/container";
 import { ElectionStatusBadge } from "@/components/election-status-badge";
 import { ResultsBars } from "@/components/results-bars";
 import { electionAddress } from "@/lib/contracts/config";
+import { DEMO_ELECTION } from "@/lib/demo-election";
 import { getElectionResults } from "@/lib/get-election-results";
 
 export const metadata: Metadata = {
@@ -17,8 +18,13 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function ResultsPage() {
-  const election = await getElectionResults();
+  const onChain = await getElectionResults();
+  // Demo only when no contract address is configured. If the address is set
+  // but parties aren't registered yet, show an on-chain setup empty state.
+  const usingDemo = !electionAddress && !onChain;
+  const election = onChain ?? (usingDemo ? DEMO_ELECTION : null);
   const hasResults = Boolean(election && election.parties.length > 0);
+  const awaitingSetup = Boolean(electionAddress && !onChain);
 
   return (
     <BoothShell action={<CitizenAuthLink />}>
@@ -30,7 +36,9 @@ export default async function ResultsPage() {
                 <ElectionStatusBadge state={election.state} />
                 {election.state === "Active" ? (
                   <span className="text-sm text-ink-muted">
-                    Results update as ballots are cast.
+                    {usingDemo
+                      ? "Demo tallies — configure the election contract for live on-chain results."
+                      : "Results update as ballots are cast."}
                   </span>
                 ) : null}
               </div>
@@ -134,11 +142,12 @@ export default async function ResultsPage() {
           ) : (
             <div className="reveal reveal-delay-1 glass-panel rounded-[1.75rem] border border-white/70 px-6 py-12 text-center sm:px-8">
               <p className="font-display text-xl font-medium text-ink">
-                No poll results
+                {awaitingSetup ? "Election not opened yet" : "No poll results"}
               </p>
               <p className="mt-2 text-sm text-ink-muted">
-                Results will appear here once the election contract is
-                configured and parties are registered on-chain.
+                {awaitingSetup
+                  ? "The contract is deployed, but parties aren’t registered and voting hasn’t started. Run the admin setup (setAdminSigner → addParty → startElection)."
+                  : "Results will appear here once the election contract is configured and parties are registered on-chain."}
               </p>
             </div>
           )}

@@ -30,28 +30,29 @@ npx hardhat test solidity
 npx hardhat test mocha
 ```
 
-### Make a deployment to Sepolia
+### Deploy Election to Sepolia
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
+1. Put RPC + deployer key in `contracts/.env`:
 
-To run the deployment to a local chain:
+```shell
+SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
+PRIVATE_KEY=your_deployer_private_key
+```
+
+2. Fund the deployer with Sepolia ETH, then:
+
+```shell
+npx hardhat compile
+npx hardhat ignition deploy --network sepolia ignition/modules/Election.ts
+```
+
+3. Copy the deployed address into the app root `.env` as `NEXT_PUBLIC_ELECTION_ADDRESS`.
+
+4. As the deployer (`admin`): `setAdminSigner` → `addParty` (one or more) → `startElection`.
+
+Sample Counter module (local / Sepolia):
 
 ```shell
 npx hardhat ignition deploy ignition/modules/Counter.ts
-```
-
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
-
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
-
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
-
-```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
-```
-
-After setting the variable, you can run the deployment with the Sepolia network:
-
-```shell
 npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
 ```

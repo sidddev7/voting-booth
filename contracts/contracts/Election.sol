@@ -6,8 +6,17 @@ import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
 /**
  * @title Election
- * @notice On-chain civic election: admin-managed parties, EIP-712 eligibility tickets,
- *         and one vote per citizen smart account while the election is Active.
+ * @notice On-chain civic election with a clear lifecycle:
+ *         NotStarted → Registration → Active → Closed.
+ *
+ * Voting rules:
+ * - Admin registers parties and sets a one-time `adminSigner`.
+ * - Citizens cast at most one vote while Active, from their own account
+ *   (`msg.sender`, typically a Privy ERC-4337 smart wallet).
+ * - Eligibility is proven by an EIP-712 ticket signed off-chain by
+ *   `adminSigner` over `{voter: msg.sender, votingContract: address(this)}`.
+ * - The ticket does not choose the party — only the citizen's tx does.
+ * - Results remain publicly readable after the election closes.
  */
 contract Election is EIP712 {
     /// @notice Lifecycle stages for the election.
@@ -67,6 +76,9 @@ contract Election is EIP712 {
     /// @notice Emitted when the off-chain eligibility signer is configured.
     event AdminSignerSet(address indexed signer);
 
+    /// @notice Emitted when party registration opens.
+    event RegistrationOpened();
+
     /// @notice Emitted when the election becomes Active.
     event ElectionStarted();
 
@@ -78,6 +90,9 @@ contract Election is EIP712 {
     error InvalidState();
     error InvalidEligibilityTicket();
     error InvalidParty();
+    error EmptyPartyField();
+    error NoParties();
+    error SignerNotSet();
     error SignerAlreadySet();
     error ZeroAddress();
 
@@ -97,9 +112,20 @@ contract Election is EIP712 {
     }
 
     /**
+     * @notice Opens the Registration phase so parties can be added explicitly.
+     * @dev Optional — `addParty` also auto-opens Registration from NotStarted.
+     */
+    function openRegistration() external onlyAdmin {
+        if (state != ElectionState.NotStarted) revert InvalidState();
+
+        state = ElectionState.Registration;
+        emit RegistrationOpened();
+    }
+
+    /**
      * @notice Registers a party that voters may choose once the election is Active.
      * @dev Restricted to admin and only allowed before voting opens so the ballot
-     *      cannot change mid-election.
+     *      cannot change mid-election. First party auto-opens Registration.
      * @param name Full party name shown in results / UI.
      * @param shortCode Compact party code for display.
      */
@@ -112,6 +138,14 @@ contract Election is EIP712 {
             state != ElectionState.Registration
         ) {
             revert InvalidState();
+        }
+        if (bytes(name).length == 0 || bytes(shortCode).length == 0) {
+            revert EmptyPartyField();
+        }
+
+        if (state == ElectionState.NotStarted) {
+            state = ElectionState.Registration;
+            emit RegistrationOpened();
         }
 
         uint256 partyId = parties.length;
@@ -140,8 +174,8 @@ contract Election is EIP712 {
 
     /**
      * @notice Opens voting by transitioning into the Active state.
-     * @dev Allowed from NotStarted or Registration so admins can skip an explicit
-     *      registration phase if parties were configured while NotStarted.
+     * @dev Requires at least one party and a configured eligibility signer so
+     *      citizens cannot enter an election they cannot complete.
      */
     function startElection() external onlyAdmin {
         if (
@@ -150,6 +184,8 @@ contract Election is EIP712 {
         ) {
             revert InvalidState();
         }
+        if (adminSigner == address(0)) revert SignerNotSet();
+        if (parties.length == 0) revert NoParties();
 
         state = ElectionState.Active;
         emit ElectionStarted();
@@ -181,6 +217,7 @@ contract Election is EIP712 {
         bytes calldata eligibilitySignature
     ) external {
         if (state != ElectionState.Active) revert InvalidState();
+        if (adminSigner == address(0)) revert SignerNotSet();
         if (hasVoted[msg.sender]) revert AlreadyVoted();
         if (partyId >= parties.length) revert InvalidParty();
 
@@ -193,7 +230,9 @@ contract Election is EIP712 {
         );
         bytes32 digest = _hashTypedDataV4(structHash);
         address signer = ECDSA.recoverCalldata(digest, eligibilitySignature);
-        if (signer != adminSigner) revert InvalidEligibilityTicket();
+        if (signer == address(0) || signer != adminSigner) {
+            revert InvalidEligibilityTicket();
+        }
 
         hasVoted[msg.sender] = true;
         unchecked {
@@ -201,6 +240,11 @@ contract Election is EIP712 {
         }
 
         emit VoteCast(msg.sender, partyId, block.timestamp);
+    }
+
+    /// @notice Number of registered parties (party ids are `0 .. partyCount()-1`).
+    function partyCount() external view returns (uint256) {
+        return parties.length;
     }
 
     /**

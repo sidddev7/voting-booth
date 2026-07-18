@@ -146,6 +146,49 @@ describe("Election", function () {
       await expect(election.connect(admin).addParty("Late Party", "LP"))
         .to.be.revertedWithCustomError(election, "InvalidState");
     });
+
+    it("rejects empty party name or shortCode", async function () {
+      const { election, admin } =
+        await networkHelpers.loadFixture(deployElectionFixture);
+
+      await expect(election.connect(admin).addParty("", "CA"))
+        .to.be.revertedWithCustomError(election, "EmptyPartyField");
+
+      await expect(election.connect(admin).addParty("Civic Alliance", ""))
+        .to.be.revertedWithCustomError(election, "EmptyPartyField");
+    });
+
+    it("auto-opens Registration on the first party", async function () {
+      const { election, admin } =
+        await networkHelpers.loadFixture(deployElectionFixture);
+
+      expect(await election.state()).to.equal(0n); // NotStarted
+      await election.connect(admin).addParty("Civic Alliance", "CA");
+      expect(await election.state()).to.equal(1n); // Registration
+      expect(await election.partyCount()).to.equal(1n);
+    });
+  });
+
+  describe("startElection guards", function () {
+    it("reverts without adminSigner", async function () {
+      const { election, admin } =
+        await networkHelpers.loadFixture(deployElectionFixture);
+
+      await election.connect(admin).addParty("Civic Alliance", "CA");
+
+      await expect(election.connect(admin).startElection())
+        .to.be.revertedWithCustomError(election, "SignerNotSet");
+    });
+
+    it("reverts without parties", async function () {
+      const { election, admin, adminSigner } =
+        await networkHelpers.loadFixture(deployElectionFixture);
+
+      await election.connect(admin).setAdminSigner(adminSigner.address);
+
+      await expect(election.connect(admin).startElection())
+        .to.be.revertedWithCustomError(election, "NoParties");
+    });
   });
 
   describe("castVote", function () {

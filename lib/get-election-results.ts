@@ -58,7 +58,8 @@ export async function getElectionResults(): Promise<ElectionSnapshot | null> {
       parties,
       totalVotes,
     };
-  } catch {
+  } catch (error) {
+    console.error("[getElectionResults] on-chain read failed:", error);
     return null;
   }
 }
