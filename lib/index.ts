@@ -4,6 +4,9 @@ export { getExa } from "./exa";
 export { partyResearchSchema, ethAddressSchema, z } from "./validation";
 export { publicClient } from "./viem";
 
-// Intentionally do not re-export wagmi/RainbowKit helpers from this barrel.
-// Import `@/lib/wagmi` only from /app/admin (or /app/providers) so citizen
-// routes keep a wallet-free client bundle.
+// Intentionally do not re-export wagmi/RainbowKit or Privy client hooks from
+// this barrel. Import `@/lib/wagmi` only from /admin, and
+// `@/lib/useCitizenSmartWallet` from client components that need citizen auth.
+//
+// Also do not re-export `@/lib/eligibility` here — it uses ADMIN_SIGNER_PRIVATE_KEY
+// and must only be imported from server-side API routes.

@@ -1,34 +1,49 @@
 "use client";
 
-import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { type ReactNode, useState } from "react";
-import { type State, WagmiProvider } from "wagmi";
-
-import { getAdminWagmiConfig } from "@/lib/wagmi";
-
-import "@rainbow-me/rainbowkit/styles.css";
+import { PrivyProvider } from "@privy-io/react-auth";
+import { SmartWalletsProvider } from "@privy-io/react-auth/smart-wallets";
+import { type ReactNode } from "react";
+import { sepolia } from "viem/chains";
 
 type ProvidersProps = {
   children: ReactNode;
-  initialState?: State;
 };
 
 /**
- * Wagmi + RainbowKit providers (Sepolia).
+ * Root Privy provider for citizen auth (email / passkey / Google) with
+ * automatic embedded wallet creation on first login (Sepolia).
  *
- * Mount only from /app/admin — never from the root layout — so citizen pages
- * ship with zero wallet dependency in their bundle.
+ * `SmartWalletsProvider` is nested so citizen pages can use
+ * `useCitizenSmartWallet` / `useSmartWallets` for sponsored txs.
+ *
+ * Mounted from the root layout so all citizen-facing pages can use Privy.
+ * Admin still mounts its own wagmi / RainbowKit providers under /admin.
  */
-export function Providers({ children, initialState }: ProvidersProps) {
-  const [config] = useState(() => getAdminWagmiConfig());
-  const [queryClient] = useState(() => new QueryClient());
+export function Providers({ children }: ProvidersProps) {
+  const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
+
+  if (!appId) {
+    throw new Error(
+      "Missing NEXT_PUBLIC_PRIVY_APP_ID. Set it in .env.local from the Privy dashboard.",
+    );
+  }
 
   return (
-    <WagmiProvider config={config} initialState={initialState}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>{children}</RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
+    <PrivyProvider
+      appId={appId}
+      config={{
+        loginMethods: ["email", "passkey", "google"],
+        // ethereum.createOnLogin is the current SDK shape for auto-wallet creation
+        embeddedWallets: {
+          ethereum: {
+            createOnLogin: "users-without-wallets",
+          },
+        },
+        defaultChain: sepolia,
+        supportedChains: [sepolia],
+      }}
+    >
+      <SmartWalletsProvider>{children}</SmartWalletsProvider>
+    </PrivyProvider>
   );
 }
