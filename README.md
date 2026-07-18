@@ -16,7 +16,7 @@ Civic voting app with on-chain contracts (Hardhat) and a Next.js frontend/API.
 
 ## Stack notes
 
-- **Admin only:** `wagmi` (v2), `viem`, `@rainbow-me/rainbowkit`, and `@tanstack/react-query` are mounted under `/admin` only — not the root layout. Citizens will use an email-based, walletless flow (Phase 0.5) and should not import these modules.
+- **Admin only:** `wagmi` (v2) + RainbowKit live in `app/providers.tsx` and are mounted from `app/admin/layout.tsx` only (Sepolia). The root layout does not import them, so citizen pages keep a wallet-free client bundle. Citizens will use an email-based, walletless flow (Phase 0.5).
 - **Database:** `drizzle-orm` + `drizzle-kit` with the `pg` driver.
 - **API validation:** `zod` (see `lib/validation.ts`).
 - **Party research:** `exa-js` (see `lib/exa.ts` and `POST /api/research`).
@@ -68,8 +68,8 @@ Copy `.env.example` and fill in values:
 cp .env.example .env.local
 ```
 
-Required for admin wallet connect: `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` (from [WalletConnect Cloud](https://cloud.walletconnect.com/)).
+Admin wallet (Sepolia): `NEXT_PUBLIC_RPC_URL`, `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` (from [WalletConnect Cloud](https://cloud.walletconnect.com/)).
 
-Required for party research: `EXA_API_KEY`.
+Party research: `EXA_API_KEY`.
 
-Required for DB access: `DATABASE_URL`.
+Database: `DATABASE_URL`.

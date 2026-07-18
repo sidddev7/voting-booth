@@ -9,16 +9,18 @@ import { getAdminWagmiConfig } from "@/lib/wagmi";
 
 import "@rainbow-me/rainbowkit/styles.css";
 
-type AdminProvidersProps = {
+type ProvidersProps = {
   children: ReactNode;
   initialState?: State;
 };
 
 /**
- * Wallet providers for the admin dashboard only.
- * Do not mount this for citizen-facing routes.
+ * Wagmi + RainbowKit providers (Sepolia).
+ *
+ * Mount only from /app/admin — never from the root layout — so citizen pages
+ * ship with zero wallet dependency in their bundle.
  */
-export function AdminProviders({ children, initialState }: AdminProvidersProps) {
+export function Providers({ children, initialState }: ProvidersProps) {
   const [config] = useState(() => getAdminWagmiConfig());
   const [queryClient] = useState(() => new QueryClient());
 
