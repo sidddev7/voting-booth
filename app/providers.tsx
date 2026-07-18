@@ -1,6 +1,7 @@
 "use client";
 
 import { PrivyProvider } from "@privy-io/react-auth";
+import { SmartWalletsProvider } from "@privy-io/react-auth/smart-wallets";
 import { type ReactNode } from "react";
 import { sepolia } from "viem/chains";
 
@@ -11,6 +12,9 @@ type ProvidersProps = {
 /**
  * Root Privy provider for citizen auth (email / passkey / Google) with
  * automatic embedded wallet creation on first login (Sepolia).
+ *
+ * `SmartWalletsProvider` is nested so citizen pages can use
+ * `useCitizenSmartWallet` / `useSmartWallets` for sponsored txs.
  *
  * Mounted from the root layout so all citizen-facing pages can use Privy.
  * Admin still mounts its own wagmi / RainbowKit providers under /admin.
@@ -39,7 +43,7 @@ export function Providers({ children }: ProvidersProps) {
         supportedChains: [sepolia],
       }}
     >
-      {children}
+      <SmartWalletsProvider>{children}</SmartWalletsProvider>
     </PrivyProvider>
   );
 }
