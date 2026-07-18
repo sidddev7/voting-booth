@@ -46,6 +46,8 @@ bun test            # single run
 bun run test:watch  # watch mode
 ```
 
+PRs targeting `main` run the same suite via GitHub Actions (`.github/workflows/unit-tests.yml`).
+
 ### Database
 
 ```bash
