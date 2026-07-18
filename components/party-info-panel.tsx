@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 type PartyInfoPanelProps = {
   partyId: number;
@@ -12,30 +12,42 @@ type ResearchState =
   | { status: "loading" }
   | {
       status: "ready";
-      points: string[];
-      sources: { title: string; url: string }[];
+      summary: string;
+      bullets: string[];
+      cached: boolean;
     }
   | { status: "error"; message: string };
+
+type QaMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+};
 
 export function PartyInfoPanel({ partyId, partyName }: PartyInfoPanelProps) {
   const [open, setOpen] = useState(false);
   const [research, setResearch] = useState<ResearchState>({ status: "idle" });
+  const [question, setQuestion] = useState("");
+  const [messages, setMessages] = useState<QaMessage[]>([]);
+  const [asking, setAsking] = useState(false);
+  const [askError, setAskError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open || research.status !== "idle") return;
+    if (!open) return;
 
-    let cancelled = false;
+    const controller = new AbortController();
+    setResearch({ status: "loading" });
+    setMessages([]);
+    setQuestion("");
+    setAskError(null);
 
     async function load() {
-      setResearch({ status: "loading" });
       try {
         const res = await fetch("/api/research", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            query: `${partyName} official platform policies manifesto`,
-            numResults: 4,
-          }),
+          body: JSON.stringify({ partyId, partyName }),
+          signal: controller.signal,
         });
 
         if (!res.ok) {
@@ -43,39 +55,26 @@ export function PartyInfoPanel({ partyId, partyName }: PartyInfoPanelProps) {
         }
 
         const data = (await res.json()) as {
-          results?: {
-            title?: string;
-            url?: string;
-            highlights?: string[];
-          }[];
+          summary?: string;
+          bullets?: string[];
+          cached?: boolean;
         };
 
-        const results = data.results ?? [];
-        const points = results
-          .flatMap((r) => r.highlights ?? [])
-          .map((h) => h.trim())
+        const bullets = (data.bullets ?? [])
+          .map((b) => b.trim())
           .filter(Boolean)
-          .slice(0, 5);
-
-        const sources = results
-          .filter((r) => r.title && r.url)
-          .map((r) => ({ title: r.title!, url: r.url! }))
-          .slice(0, 4);
-
-        if (cancelled) return;
+          .slice(0, 6);
 
         setResearch({
           status: "ready",
-          points:
-            points.length > 0
-              ? points
-              : [
-                  "No recent summarized highlights were returned. Check the sources below or official party materials.",
-                ],
-          sources,
+          summary:
+            data.summary?.trim() ||
+            "No summary is available for this party yet.",
+          bullets,
+          cached: Boolean(data.cached),
         });
       } catch (error) {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         setResearch({
           status: "error",
           message:
@@ -89,9 +88,79 @@ export function PartyInfoPanel({ partyId, partyName }: PartyInfoPanelProps) {
     void load();
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, [open, partyName, research.status]);
+  }, [open, partyId, partyName]);
+
+  async function onAsk(event: FormEvent) {
+    event.preventDefault();
+    const trimmed = question.trim();
+    if (!trimmed || asking) return;
+
+    const userId = `u-${Date.now()}`;
+    const assistantId = `a-${Date.now()}`;
+
+    setAskError(null);
+    setAsking(true);
+    setQuestion("");
+    setMessages((prev) => [
+      ...prev,
+      { id: userId, role: "user", content: trimmed },
+      { id: assistantId, role: "assistant", content: "" },
+    ]);
+
+    try {
+      const res = await fetch("/api/research/ask", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/plain",
+        },
+        body: JSON.stringify({ partyId, partyName, question: trimmed }),
+      });
+
+      if (!res.ok) {
+        const errBody = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(errBody?.error || "Unable to answer right now.");
+      }
+
+      if (!res.body) {
+        throw new Error("No response stream from the assistant.");
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        if (!chunk) continue;
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId
+              ? { ...m, content: `${m.content}${chunk}` }
+              : m,
+          ),
+        );
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to answer right now.";
+      setAskError(message);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId && !m.content
+            ? { ...m, content: "Sorry — I could not answer that question." }
+            : m,
+        ),
+      );
+    } finally {
+      setAsking(false);
+    }
+  }
 
   return (
     <div className="border-t border-line/70 pt-3">
@@ -109,9 +178,9 @@ export function PartyInfoPanel({ partyId, partyName }: PartyInfoPanelProps) {
       {open ? (
         <div
           id={`party-info-${partyId}`}
-          className="mt-3 space-y-3 text-sm text-ink-muted"
+          className="mt-3 space-y-4 text-sm text-ink-muted"
         >
-          {research.status === "loading" ? (
+          {research.status === "idle" || research.status === "loading" ? (
             <div className="space-y-2" aria-busy="true" aria-live="polite">
               <div className="h-3 w-11/12 animate-pulse rounded bg-line/50" />
               <div className="h-3 w-9/12 animate-pulse rounded bg-line/50" />
@@ -127,37 +196,73 @@ export function PartyInfoPanel({ partyId, partyName }: PartyInfoPanelProps) {
 
           {research.status === "ready" ? (
             <>
-              <ul className="list-disc space-y-2 pl-5">
-                {research.points.map((point) => (
-                  <li key={point.slice(0, 48)}>{point}</li>
-                ))}
-              </ul>
+              <p className="leading-relaxed text-ink">{research.summary}</p>
 
-              {research.sources.length > 0 ? (
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink">
-                    Sources
-                  </p>
-                  <ul className="space-y-1.5">
-                    {research.sources.map((source) => (
-                      <li key={source.url}>
-                        <a
-                          href={source.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="pressable text-seal underline-offset-2 hover:underline"
-                        >
-                          {source.title}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+              {research.bullets.length > 0 ? (
+                <ul className="list-disc space-y-2 pl-5">
+                  {research.bullets.map((point) => (
+                    <li key={point.slice(0, 48)}>{point}</li>
+                  ))}
+                </ul>
               ) : null}
 
+              <div className="space-y-3 border-t border-line/60 pt-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink">
+                  Ask about {partyName}
+                </p>
+
+                {messages.length > 0 ? (
+                  <div className="max-h-64 space-y-3 overflow-y-auto pr-1">
+                    {messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={
+                          message.role === "user"
+                            ? "rounded-lg bg-seal/10 px-3 py-2 text-ink"
+                            : "rounded-lg bg-line/30 px-3 py-2 text-ink-muted whitespace-pre-wrap"
+                        }
+                      >
+                        {message.content ||
+                          (asking ? "Thinking…" : "")}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-ink-muted/90">
+                    Examples: “What do they say about transit?” or “How do they
+                    approach housing costs?”
+                  </p>
+                )}
+
+                <form onSubmit={onAsk} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    placeholder={`Ask a question about ${partyName}…`}
+                    disabled={asking}
+                    maxLength={500}
+                    className="min-h-10 flex-1 rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none ring-seal/30 placeholder:text-ink-muted/70 focus:ring-2 disabled:opacity-60"
+                  />
+                  <button
+                    type="submit"
+                    disabled={asking || question.trim().length < 3}
+                    className="pressable min-h-10 shrink-0 rounded-lg bg-seal px-3 text-sm font-medium text-paper disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {asking ? "…" : "Ask"}
+                  </button>
+                </form>
+
+                {askError ? (
+                  <p role="alert" className="text-xs text-warn">
+                    {askError}
+                  </p>
+                ) : null}
+              </div>
+
               <p className="text-xs leading-relaxed text-ink-muted/90">
-                Information gathered from public web sources via Exa AI. Verify
-                with official party materials before voting.
+                Answers are grounded in this election’s party knowledge base
+                (via Exa). Verify with official materials before voting.
               </p>
             </>
           ) : null}

@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { getExa } from "@/lib/exa";
+import { getPartySummaryForRequest } from "@/lib/get-party-summary";
+import { getCachedPartySummary, toPartySummaryDto } from "@/lib/party-summary";
 import { partyResearchSchema } from "@/lib/validation";
 
 /**
- * Party research via Exa. Validates input with Zod before calling the SDK.
+ * Learn-about-party summaries: Supabase cache / seed first, Exa on refresh.
  */
 export async function POST(request: Request) {
   let body: unknown;
@@ -24,23 +25,34 @@ export async function POST(request: Request) {
     );
   }
 
-  try {
-    const exa = getExa();
-    const result = await exa.search(parsed.data.query, {
-      numResults: parsed.data.numResults,
-      type: "auto",
-      contents: {
-        highlights: true,
-      },
-    });
+  const { partyId, partyName, forceRefresh } = parsed.data;
 
-    return NextResponse.json(result);
+  try {
+    const dto = await getPartySummaryForRequest({
+      partyId,
+      partyName,
+      forceRefresh,
+    });
+    return NextResponse.json(dto);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Party research failed";
+    console.error("[api/research]", message, error);
 
-    if (message.includes("EXA_API_KEY")) {
+    if (
+      message.includes("EXA_API_KEY") ||
+      message.includes("DATABASE_URL")
+    ) {
       return NextResponse.json({ error: message }, { status: 503 });
+    }
+
+    try {
+      const fallback = await getCachedPartySummary(partyId);
+      if (fallback) {
+        return NextResponse.json(toPartySummaryDto(fallback, true));
+      }
+    } catch {
+      // ignore secondary failure
     }
 
     return NextResponse.json({ error: message }, { status: 502 });

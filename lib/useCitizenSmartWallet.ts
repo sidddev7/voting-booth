@@ -6,10 +6,12 @@ import { useSmartWallets } from "@privy-io/react-auth/smart-wallets";
 /**
  * Citizen-facing wallet state for voting.
  *
- * Prefers the ERC-4337 smart account (gas-sponsored casts). Falls back to the
- * Privy embedded EOA when Smart Wallets are not yet provisioned — common when
- * the Privy Dashboard has Smart Wallets disabled or misconfigured (Sepolia,
- * Kernel/ZeroDev, paymaster URL).
+ * Prefers the ERC-4337 smart account (gas-sponsored casts) when the Privy
+ * smart-wallet client is ready. Otherwise uses the embedded EOA.
+ *
+ * Important: `useSendTransaction` can only sign with a Privy embedded wallet.
+ * Never pass a smart-wallet address to `sendTransaction` — that throws
+ * "Must have a Privy wallet before signing".
  */
 export function useCitizenSmartWallet() {
   const { ready, authenticated, user } = usePrivy();
@@ -36,8 +38,16 @@ export function useCitizenSmartWallet() {
     user?.wallet?.address ??
     null;
 
-  /** Prefer smart account; fall back so the UI is not blocked on dashboard setup. */
-  const votingAddress = smartWalletAddress ?? embeddedWalletAddress;
+  const smartWalletClient = client ?? null;
+  const canUseSmartWallet = Boolean(smartWalletClient && smartWalletAddress);
+
+  /**
+   * Address that will be `msg.sender` when casting.
+   * Only use the smart account when its client is ready to submit UserOps.
+   */
+  const votingAddress = canUseSmartWallet
+    ? smartWalletAddress
+    : embeddedWalletAddress;
 
   return {
     ready,
@@ -46,6 +56,7 @@ export function useCitizenSmartWallet() {
     embeddedWalletAddress,
     votingAddress,
     hasSmartWallet: Boolean(smartWalletAddress),
-    smartWalletClient: client ?? null,
+    canUseSmartWallet,
+    smartWalletClient,
   };
 }
