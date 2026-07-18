@@ -52,7 +52,25 @@ export const votes = pgTable(
   ],
 );
 
+/**
+ * Citizens allowed to request an EIP-712 eligibility ticket.
+ * Match on normalized email from the authenticated Privy user.
+ */
+export const eligibleCitizens = pgTable(
+  "eligible_citizens",
+  {
+    id: text("id").primaryKey(),
+    email: text("email").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [uniqueIndex("eligible_citizens_email_uidx").on(table.email)],
+);
+
 export type Proposal = typeof proposals.$inferSelect;
 export type NewProposal = typeof proposals.$inferInsert;
 export type Vote = typeof votes.$inferSelect;
 export type NewVote = typeof votes.$inferInsert;
+export type EligibleCitizen = typeof eligibleCitizens.$inferSelect;
+export type NewEligibleCitizen = typeof eligibleCitizens.$inferInsert;

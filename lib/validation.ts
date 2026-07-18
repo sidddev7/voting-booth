@@ -12,4 +12,11 @@ export const partyResearchSchema = z.object({
 
 export type PartyResearchInput = z.infer<typeof partyResearchSchema>;
 
+/** Body for POST /api/eligibility-ticket */
+export const eligibilityTicketSchema = z.object({
+  voterAddress: ethAddressSchema,
+});
+
+export type EligibilityTicketInput = z.infer<typeof eligibilityTicketSchema>;
+
 export { z };

@@ -16,7 +16,7 @@ Civic voting app with on-chain contracts (Hardhat) and a Next.js frontend/API.
 
 ## Stack notes
 
-- **Citizen auth:** Privy (`@privy-io/react-auth`) lives in `app/providers.tsx` and is mounted from the root layout (email / passkey / Google + embedded wallet on Sepolia).
+- **Citizen auth:** Privy (`@privy-io/react-auth`) lives in `app/providers.tsx` and is mounted from the root layout (email login + embedded wallet on Sepolia; enable Google/passkey in the Privy Dashboard before adding them to `loginMethods`).
 - **Admin only:** `wagmi` (v2) + RainbowKit live in `app/admin/providers.tsx` and are mounted from `app/admin/layout.tsx` only (Sepolia).
 - **Eligibility:** Backend EIP-712 tickets via `ADMIN_SIGNER_PRIVATE_KEY` (`lib/eligibility.ts`) after Postgres allowlist checks — not a precomputed Merkle tree. Election.sol will verify with `adminSigner` + ECDSA.recover.
 - **Database:** `drizzle-orm` + `drizzle-kit` with the `pg` driver.
